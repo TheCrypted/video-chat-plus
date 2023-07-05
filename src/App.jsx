@@ -1,13 +1,21 @@
 import './App.css'
+import {createBrowserRouter, createRoutesFromElements, Route, RouterProvider} from "react-router-dom";
+import {Home} from "./pages/Home.jsx";
+import {NewUser} from "./pages/NewUser.jsx";
+
+const router = createBrowserRouter(
+    createRoutesFromElements(
+        <>
+            <Route path="/" element={<Home />} />
+            <Route path="/Login" element={<NewUser />} />
+        </>
+    )
+)
 
 function App() {
 
   return (
-    <>
-      <div>
-        Hello
-      </div>
-    </>
+        <RouterProvider router={router}/>
   )
 }
 
