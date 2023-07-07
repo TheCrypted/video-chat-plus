@@ -1,6 +1,6 @@
-import {useEffect, useRef} from "react";
+import {useEffect, useRef, useState} from "react";
 import * as stream from "stream";
-import {CloseFullscreenRounded, OpenInFullRounded} from "@mui/icons-material";
+import {CloseFullscreenRounded} from "@mui/icons-material";
 
 export const Home = () => {
 	let localStream = useRef(null);
@@ -8,10 +8,11 @@ export const Home = () => {
 	let localStreamRef = useRef()
 	let remoteStreamRef = useRef()
 	const smallRef = useRef(localStreamRef)
+	let [minState, setMinState] = useState(localStreamRef)
 	const dragRef = useRef(false)
 	const timeRef = useRef(new Date())
 	function getOppRef(ref){
-		if(ref.current === localStreamRef.current){
+		if(ref.current.id === "local"){
 			return remoteStreamRef
 		} else {
 			return localStreamRef
@@ -35,16 +36,48 @@ export const Home = () => {
 				stream.classList.toggle("w-full")
 				stream.classList.toggle("m-4")
 			})
+
 			smallRef.current = getOppRef(smallRef.current)
+			setMinState(smallRef.current)
+			// console.log("smallRef changed")
+			let mainRef = getOppRef(smallRef.current)
+			// console.log(mainRef.current)
+			mainRef.current.style.top="0px"
+			mainRef.current.style.left="0px"
 		}
 	}
 	function handleStreamClick(e, objRef) {
-		if (e.detail === 2 && smallRef.current.current === objRef.current) {
-			switchActiveScreen()
-		} else if (e.detail === 1 && smallRef.current.current === objRef.current) {
+		if (smallRef.current.current === objRef.current) {
 			switchActiveScreen()
 		}
 	}
+
+	useEffect(()=>{
+		function removeEventListener(){
+			window.removeEventListener("mousemove", changeScreenLoc)
+			let timeNow = new Date()
+			if(timeRef.current.getTime() - timeNow.getTime() < -250){
+				setTimeout(() => {
+					dragRef.current = false
+				}, 100)
+			} else {
+				dragRef.current = false
+			}
+			timeRef.current = timeNow
+		}
+		function addEventListener(){
+			timeRef.current= new Date();
+			window.addEventListener("mousemove", changeScreenLoc)
+			dragRef.current = true
+		}
+
+		minState.current.addEventListener("mousedown", addEventListener)
+		minState.current.addEventListener("mouseup", removeEventListener)
+		return () => {
+			minState.current.removeEventListener("mousedown", addEventListener)
+			minState.current.removeEventListener("mouseup", removeEventListener)
+		}
+	}, [minState])
 
 	useEffect(()=>{
 		let init = async() => {
@@ -64,40 +97,13 @@ export const Home = () => {
 		};
 
 	}, [])
-	useEffect(()=>{
-		function removeEventListener(){
-			window.removeEventListener("mousemove", changeScreenLoc)
-			let timeNow = new Date()
-			console.log(timeRef.current.getTime() - timeNow.getTime())
-			if(timeRef.current.getTime() - timeNow.getTime() < -250){
-				setTimeout(() => {
-					dragRef.current = false
-				}, 100)
-			} else {
-				dragRef.current = false
-			}
-			timeRef.current = timeNow
-		}
-		function addEventListener(){
-			timeRef.current= new Date();
-			window.addEventListener("mousemove", changeScreenLoc)
-			dragRef.current = true
-		}
-
-		smallRef.current.current.addEventListener("mousedown", addEventListener)
-		smallRef.current.current.addEventListener("mouseup", removeEventListener)
-		return () => {
-			smallRef.current.current.removeEventListener("mousedown", addEventListener)
-			smallRef.current.current.removeEventListener("mouseup", removeEventListener)
-		}
-	}, [smallRef.current])
 
 	return (
 		<div className="w-full h-full bg-zinc-900 overflow-hidden">
-			<video ref={localStreamRef} className="hover:cursor-pointer m-4 absolute z-10 shadow-2xl rounded-lg h-[33%]" onClick={(e) => {
+			<video id="local" ref={localStreamRef} className="hover:cursor-pointer m-4 absolute z-10 shadow-2xl rounded-lg h-[33%]" onClick={(e) => {
 				handleStreamClick(e, localStreamRef)
 			}} autoPlay={true} playsInline={true}/>
-			<video ref={remoteStreamRef} className="hover:cursor-pointer absolute z-0 shadow-2xl rounded-lg h-full w-full" onClick={(e) => {
+			<video id="remote" ref={remoteStreamRef} className="hover:cursor-pointer absolute z-0 shadow-2xl rounded-lg h-full w-full" onClick={(e) => {
 				handleStreamClick(e, remoteStreamRef)
 			}} autoPlay={true} playsInline={true}/>
 			<div className="absolute flex items-center justify-center h-[6vh] rounded-full w-[6vh] bg-gray-500 bg-opacity-50 hover:bg-opacity-70 transition-all hover:m-3 hover:w-[7vh] hover:h-[7vh] right-0 m-4 ">
