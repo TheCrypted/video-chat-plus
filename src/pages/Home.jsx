@@ -18,6 +18,31 @@ export const Home = () => {
 			return localStreamRef
 		}
 	}
+	//Put onMouseOver in-place of changeScreen Lock to experiment without boundary conditions
+	function dragMinScreen(e){
+		let targetDiv = minState.current
+		let boxHeight = targetDiv.clientHeight
+		let boxWidth = targetDiv.clientWidth
+		let topDist = targetDiv.style.top
+		let leftDist = targetDiv.style.left
+		let posX = e.clientX
+		let posY = e.clientY
+
+		// if()
+
+	}
+	function onMouseOver(e){
+		let targetDiv = minState.current
+		let posX = e.clientX
+		let posY = e.clientY
+		// let newWidth = posX - targetDiv.clientWidth - 2*targetDiv.style.left
+		let topLength = typeof(targetDiv.style.top) === "string" ? 0: targetDiv.style.top
+		let newHeight = posY  - topLength
+		console.log(posY - targetDiv.clientHeight, newHeight)
+		// targetDiv.style.width = `${newWidth}px`
+		targetDiv.style.height = `${newHeight}px`
+	}
+
 	const changeScreenLoc = (e) => {
 		let mouseX = e.clientX;
 		let mouseY = e.clientY;
@@ -44,6 +69,8 @@ export const Home = () => {
 			// console.log(mainRef.current)
 			mainRef.current.style.top="0px"
 			mainRef.current.style.left="0px"
+			mainRef.current.style.width="100%"
+			mainRef.current.style.height="100%"
 		}
 	}
 	function handleStreamClick(e, objRef) {
@@ -53,8 +80,12 @@ export const Home = () => {
 	}
 
 	useEffect(()=>{
+		console.log("check")
+		minState.current.style.width="auto"
+		minState.current.style.height="33%"
 		function removeEventListener(){
-			window.removeEventListener("mousemove", changeScreenLoc)
+			//change to changeScreenLoc
+			window.removeEventListener("mousemove", onMouseOver)
 			let timeNow = new Date()
 			if(timeRef.current.getTime() - timeNow.getTime() < -250){
 				setTimeout(() => {
@@ -67,15 +98,15 @@ export const Home = () => {
 		}
 		function addEventListener(){
 			timeRef.current= new Date();
-			window.addEventListener("mousemove", changeScreenLoc)
+			//change to changeScreenLoc
+			window.addEventListener("mousemove", onMouseOver)
 			dragRef.current = true
 		}
-
 		minState.current.addEventListener("mousedown", addEventListener)
-		minState.current.addEventListener("mouseup", removeEventListener)
+		window.addEventListener("mouseup", removeEventListener)
 		return () => {
 			minState.current.removeEventListener("mousedown", addEventListener)
-			minState.current.removeEventListener("mouseup", removeEventListener)
+			window.removeEventListener("mouseup", removeEventListener)
 		}
 	}, [minState])
 
