@@ -24,11 +24,25 @@ export const Home = () => {
 		let boxHeight = targetDiv.clientHeight
 		let boxWidth = targetDiv.clientWidth
 		let topDist = targetDiv.style.top
+		topDist = topDist !== "" ? parseInt(topDist.split("px")[0]) : 0
 		let leftDist = targetDiv.style.left
+		leftDist = leftDist !== "" ? parseInt(leftDist.split("px")[0]) : 0
 		let posX = e.clientX
 		let posY = e.clientY
-
-		// if()
+		let rightBorder = leftDist + 0.95*boxWidth > posX;
+		let bottomBorder = topDist + 0.95*boxHeight > posY;
+		let topBorder  = topDist + 0.05*boxHeight < posY;
+		let leftBorder  = leftDist + 0.05*boxWidth < posX;
+		console.log(rightBorder , leftBorder , topBorder , bottomBorder)
+		if(rightBorder && leftBorder && topBorder && bottomBorder){
+			console.log("location change")
+			// changeScreenLoc(e)
+			onMouseOver(e)
+		} else {
+			console.log("drag change")
+			onMouseOver(e)
+			// changeScreenLoc(e)
+		}
 
 	}
 	function onMouseOver(e){
@@ -38,7 +52,6 @@ export const Home = () => {
 		// let newWidth = posX - targetDiv.clientWidth - 2*targetDiv.style.left
 		let topLength = typeof(targetDiv.style.top) === "string" ? 0: targetDiv.style.top
 		let newHeight = posY  - topLength
-		console.log(posY - targetDiv.clientHeight, newHeight)
 		// targetDiv.style.width = `${newWidth}px`
 		targetDiv.style.height = `${newHeight}px`
 	}
@@ -80,12 +93,11 @@ export const Home = () => {
 	}
 
 	useEffect(()=>{
-		console.log("check")
 		minState.current.style.width="auto"
 		minState.current.style.height="33%"
 		function removeEventListener(){
 			//change to changeScreenLoc
-			window.removeEventListener("mousemove", onMouseOver)
+			window.removeEventListener("mousemove", dragMinScreen)
 			let timeNow = new Date()
 			if(timeRef.current.getTime() - timeNow.getTime() < -250){
 				setTimeout(() => {
@@ -99,7 +111,7 @@ export const Home = () => {
 		function addEventListener(){
 			timeRef.current= new Date();
 			//change to changeScreenLoc
-			window.addEventListener("mousemove", onMouseOver)
+			window.addEventListener("mousemove", dragMinScreen)
 			dragRef.current = true
 		}
 		minState.current.addEventListener("mousedown", addEventListener)
