@@ -13,6 +13,7 @@ meetingDB.sync().then(()=>{
 app.use(cors())
 app.use(express.json())
 app.use(urlencoded({extended: true}))
+app.use("/auth", )
 const init = async () => {
     app.listen(PORT, ()=>{
         console.log(`App is running on port ${PORT}`);
