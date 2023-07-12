@@ -90,3 +90,12 @@ router.post("/signin", async (req, res)=>{
         console.log(e)
     }
 })
+
+router.get("/protected", authToken, (req, res) => {
+    res.status(201).send(JSON.stringify({
+        message: "token verified",
+        user: req.user
+    }))
+})
+
+module.exports = router
