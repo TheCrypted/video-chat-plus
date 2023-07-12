@@ -1,6 +1,6 @@
 import {useEffect, useRef, useState} from "react";
 import * as stream from "stream";
-import {CloseFullscreenRounded} from "@mui/icons-material";
+import {CallEnd, CloseFullscreenRounded, Mic, Videocam, VideocamOff} from "@mui/icons-material";
 
 export const Home = () => {
 	let localStream = useRef(null);
@@ -11,6 +11,7 @@ export const Home = () => {
 	let [minState, setMinState] = useState(localStreamRef)
 	const dragRef = useRef(false)
 	const timeRef = useRef(new Date())
+	let [selfVidDisplay, setSelfVidDisplay] = useState(true)
 	function getOppRef(ref){
 		if(ref.current.id === "local"){
 			return remoteStreamRef
@@ -18,7 +19,6 @@ export const Home = () => {
 			return localStreamRef
 		}
 	}
-	//Put onMouseOver in-place of changeScreen Lock to experiment without boundary conditions
 	function dragMinScreen(e){
 		let targetDiv = minState.current
 		let boxHeight = targetDiv.clientHeight
@@ -31,28 +31,19 @@ export const Home = () => {
 		let posY = e.clientY
 		let rightBorder = leftDist + 0.95*boxWidth > posX;
 		let bottomBorder = topDist + 0.95*boxHeight > posY;
-		let topBorder  = topDist + 0.05*boxHeight < posY;
-		let leftBorder  = leftDist + 0.05*boxWidth < posX;
-		console.log(rightBorder , leftBorder , topBorder , bottomBorder)
-		if(rightBorder && leftBorder && topBorder && bottomBorder){
-			console.log("location change")
-			// changeScreenLoc(e)
-			onMouseOver(e)
+		if(rightBorder  && bottomBorder){
+			changeScreenLoc(e)
 		} else {
-			console.log("drag change")
 			onMouseOver(e)
-			// changeScreenLoc(e)
 		}
 
 	}
 	function onMouseOver(e){
 		let targetDiv = minState.current
-		let posX = e.clientX
 		let posY = e.clientY
-		// let newWidth = posX - targetDiv.clientWidth - 2*targetDiv.style.left
-		let topLength = typeof(targetDiv.style.top) === "string" ? 0: targetDiv.style.top
+		let topLength = targetDiv.style.top === "" ? 0: parseInt(targetDiv.style.top.split("px")[0])
+		console.log(topLength)
 		let newHeight = posY  - topLength
-		// targetDiv.style.width = `${newWidth}px`
 		targetDiv.style.height = `${newHeight}px`
 	}
 
@@ -143,19 +134,42 @@ export const Home = () => {
 
 	return (
 		<div className="w-full h-full bg-zinc-900 overflow-hidden">
-			<video id="local" ref={localStreamRef} className="hover:cursor-pointer m-4 absolute z-10 shadow-2xl rounded-lg h-[33%]" onClick={(e) => {
+			<video id="local" ref={localStreamRef} className="text-white hover:cursor-pointer m-4 absolute z-10 shadow-2xl rounded-lg h-[33%]" onClick={(e) => {
 				handleStreamClick(e, localStreamRef)
 			}} autoPlay={true} playsInline={true}/>
+			{/*{*/}
+			{/*	selfVidDisplayRef && <div className="hover:cursor-pointer m-4 absolute z-10 shadow-2xl rounded-lg h-[33%] bg-white w-1/4">Video Error </div>*/}
+			{/*}*/}
 			<video id="remote" ref={remoteStreamRef} className="hover:cursor-pointer absolute z-0 shadow-2xl rounded-lg h-full w-full" onClick={(e) => {
 				handleStreamClick(e, remoteStreamRef)
 			}} autoPlay={true} playsInline={true}/>
 			<div className="absolute flex items-center justify-center h-[6vh] rounded-full w-[6vh] bg-gray-500 bg-opacity-50 hover:bg-opacity-70 transition-all hover:m-3 hover:w-[7vh] hover:h-[7vh] right-0 m-4 ">
 				<CloseFullscreenRounded style={{ color: 'white' }} fontSize="large" className="hover:opacity-100 opacity-30 hover:cursor-pointer w-full h-full" onClick={switchActiveScreen}/>
 			</div>
-			<div className="absolute z-20 h-[10%] w-1/5 bottom-[0%] left-[40%] mb-8 flex gap-4">
-				<button className="rounded-full bg-red-500 w-1/3 m-2"></button>
-				<button className="rounded-full bg-red-500 w-1/3 m-2"></button>
-				<button className="rounded-full bg-red-500 w-1/3 m-2"></button>
+			<div className="absolute z-20 h-[10%] w-1/5 bottom-[0%] left-[42%] mb-12 flex gap-4">
+				<button className="rounded-full bg-gray-500 hover:bg-gray-700 w-[7.5vh] h-[7.5vh] m-2" onClick={async ()=>{
+					if(selfVidDisplay) {
+						localStream.current.getVideoTracks().forEach((track)=> track.stop())
+					} else {
+						localStream.current = await navigator.mediaDevices.getUserMedia({video: true, audio: false});
+						localStreamRef.current.srcObject = localStream.current
+					}
+					setSelfVidDisplay(!selfVidDisplay)
+				}}>
+					{
+						selfVidDisplay && <Videocam className="text-white" fontSize="large"/>
+					}
+					{
+						!selfVidDisplay && <VideocamOff className="text-white" fontSize="large"/>
+					}
+					{/*<Videocam className="text-white" fontSize="large"/>*/}
+				</button>
+				<button className="rounded-full bg-gray-500 hover:bg-gray-700 w-[7.5vh] h-[7.5vh] m-2">
+					<Mic className="text-white" fontSize="large"/>
+				</button>
+				<button className="rounded-full bg-red-500 hover:bg-red-700 w-[12vh] h-[7.5vh] m-2">
+					<CallEnd className="text-white" fontSize="large"/>
+				</button>
 			</div>
 		</div>
 	)
