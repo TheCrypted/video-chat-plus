@@ -1,6 +1,7 @@
 const express = require('express')
 const cors = require('cors')
-const meetingDB = require('/config/db.cjs')
+const meetingDB = require('./config/db.cjs')
+const routes = require('./routes/authRoutes.cjs')
 const {urlencoded} = require("express");
 
 const app = express();
@@ -13,7 +14,7 @@ meetingDB.sync().then(()=>{
 app.use(cors())
 app.use(express.json())
 app.use(urlencoded({extended: true}))
-app.use("/auth", )
+app.use("/auth", routes)
 const init = async () => {
     app.listen(PORT, ()=>{
         console.log(`App is running on port ${PORT}`);
