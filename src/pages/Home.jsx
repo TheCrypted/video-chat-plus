@@ -1,6 +1,6 @@
 import {useEffect, useRef, useState} from "react";
 import * as stream from "stream";
-import {CallEnd, CloseFullscreenRounded, Mic, Videocam, VideocamOff} from "@mui/icons-material";
+import {CallEnd, CloseFullscreenRounded, Mic, MicOff, Videocam, VideocamOff} from "@mui/icons-material";
 
 export const Home = () => {
 	let localStream = useRef(null);
@@ -11,7 +11,9 @@ export const Home = () => {
 	let [minState, setMinState] = useState(localStreamRef)
 	const dragRef = useRef(false)
 	const timeRef = useRef(new Date())
+	const muteRef = useRef(null)
 	let [selfVidDisplay, setSelfVidDisplay] = useState(true)
+	let [selfMute, setSelfMute] = useState(false)
 	function getOppRef(ref){
 		if(ref.current.id === "local"){
 			return remoteStreamRef
@@ -68,9 +70,7 @@ export const Home = () => {
 
 			smallRef.current = getOppRef(smallRef.current)
 			setMinState(smallRef.current)
-			// console.log("smallRef changed")
 			let mainRef = getOppRef(smallRef.current)
-			// console.log(mainRef.current)
 			mainRef.current.style.top="0px"
 			mainRef.current.style.left="0px"
 			mainRef.current.style.width="100%"
@@ -87,7 +87,6 @@ export const Home = () => {
 		minState.current.style.width="auto"
 		minState.current.style.height="33%"
 		function removeEventListener(){
-			//change to changeScreenLoc
 			window.removeEventListener("mousemove", dragMinScreen)
 			let timeNow = new Date()
 			if(timeRef.current.getTime() - timeNow.getTime() < -250){
@@ -101,7 +100,6 @@ export const Home = () => {
 		}
 		function addEventListener(){
 			timeRef.current= new Date();
-			//change to changeScreenLoc
 			window.addEventListener("mousemove", dragMinScreen)
 			dragRef.current = true
 		}
@@ -116,12 +114,11 @@ export const Home = () => {
 	useEffect(()=>{
 		let init = async() => {
 			try {
-				localStream.current = await navigator.mediaDevices.getUserMedia({video: true, audio: false});
+				localStream.current = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
 				localStreamRef.current.srcObject = localStream.current
 			} catch (e) {
 				console.log(e)
 			}
-
 		}
 		init().catch(e => console.log(e))
 		return function cleanup() {
@@ -131,15 +128,11 @@ export const Home = () => {
 		};
 
 	}, [])
-
 	return (
 		<div className="w-full h-full bg-zinc-900 overflow-hidden">
 			<video id="local" ref={localStreamRef} className="text-white hover:cursor-pointer m-4 absolute z-10 shadow-2xl rounded-lg h-[33%]" onClick={(e) => {
 				handleStreamClick(e, localStreamRef)
-			}} autoPlay={true} playsInline={true}/>
-			{/*{*/}
-			{/*	selfVidDisplayRef && <div className="hover:cursor-pointer m-4 absolute z-10 shadow-2xl rounded-lg h-[33%] bg-white w-1/4">Video Error </div>*/}
-			{/*}*/}
+			}} autoPlay={true} playsInline={true}>Hello</video>
 			<video id="remote" ref={remoteStreamRef} className="hover:cursor-pointer absolute z-0 shadow-2xl rounded-lg h-full w-full" onClick={(e) => {
 				handleStreamClick(e, remoteStreamRef)
 			}} autoPlay={true} playsInline={true}/>
@@ -150,8 +143,10 @@ export const Home = () => {
 				<button className="rounded-full bg-gray-500 hover:bg-gray-700 w-[7.5vh] h-[7.5vh] m-2" onClick={async ()=>{
 					if(selfVidDisplay) {
 						localStream.current.getVideoTracks().forEach((track)=> track.stop())
+						localStreamRef.current.srcObject = null
+						localStreamRef.current.poster = "https://preview.redd.it/zcgs03lgoy351.png?width=288&format=png&auto=webp&s=d9bf4b46713d7fdbf11b82a8e364ceee79724a9c"
 					} else {
-						localStream.current = await navigator.mediaDevices.getUserMedia({video: true, audio: false});
+						localStream.current = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
 						localStreamRef.current.srcObject = localStream.current
 					}
 					setSelfVidDisplay(!selfVidDisplay)
@@ -162,10 +157,22 @@ export const Home = () => {
 					{
 						!selfVidDisplay && <VideocamOff className="text-white" fontSize="large"/>
 					}
-					{/*<Videocam className="text-white" fontSize="large"/>*/}
 				</button>
-				<button className="rounded-full bg-gray-500 hover:bg-gray-700 w-[7.5vh] h-[7.5vh] m-2">
-					<Mic className="text-white" fontSize="large"/>
+				<button ref={muteRef} className="rounded-full bg-blue-500 hover:bg-blue-700 w-[7.5vh] h-[7.5vh] m-2" onClick={async (e)=>{
+					e.stopPropagation();
+					if(!selfMute){
+						localStream.current.getAudioTracks().forEach((track)=> track.stop())
+						muteRef.current.style.backgroundColor = "#6b7280"
+					} else {
+						localStream.current = await navigator.mediaDevices.getUserMedia({video: selfVidDisplay, audio: true});
+						localStreamRef.current.srcObject = localStream.current
+						muteRef.current.style.backgroundColor = "#3b82f6"
+					}
+					setSelfMute(!selfMute)
+				}}>
+					{
+						selfMute ? <MicOff className="text-white" fontSize="large" /> : <Mic className="text-white" fontSize="large" />
+					}
 				</button>
 				<button className="rounded-full bg-red-500 hover:bg-red-700 w-[12vh] h-[7.5vh] m-2">
 					<CallEnd className="text-white" fontSize="large"/>
