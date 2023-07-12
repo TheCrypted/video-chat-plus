@@ -31,6 +31,7 @@ function authToken(req, res, next) {
 }
 router.post("/signup", async (req, res)=>{
     try {
+        console.log("hello")
         const {name, email, password} = req.body
         const existingUser = await User.findOne({
             where: {
@@ -90,15 +91,6 @@ router.post("/signin", async (req, res)=>{
         console.log(e)
     }
 })
-
-router.get("/protected", authToken, (req, res) => {
-    res.status(201).send(JSON.stringify({
-        message: "token verified",
-        user: req.user
-    }))
-})
-
-module.exports = router
 
 router.get("/protected", authToken, (req, res) => {
     res.status(201).send(JSON.stringify({
