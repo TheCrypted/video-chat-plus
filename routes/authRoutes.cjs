@@ -17,7 +17,7 @@ function genToken(user){
     })
 }
 function authToken(req, res, next) {
-    const token = req.header.auth
+    const token = req.headers.auth
     if(!token){
         return res.status(401).json({ message: 'No token provided' });
     }

@@ -1,10 +1,11 @@
-import {Link} from "react-router-dom";
+import {Link, useNavigate} from "react-router-dom";
 import {useRef} from "react";
 
 export const NewUser = () => {
 	const nameRef = useRef(null)
 	const emailRef = useRef(null)
 	const passwordRef = useRef(null)
+	const navigate = useNavigate()
 	return (
 		<div className="w-full h-full bg-zinc-800 flex items-center justify-center text-white">
 			<div className="w-1/3 h-3/5 bg-zinc-900 rounded-xl shadow-xl hover:shadow-2xl transition duration-300">
@@ -27,7 +28,8 @@ export const NewUser = () => {
 							})
 						}).then(response => response.json())
 							.then((resp)=> {
-								console.log(resp)})
+								navigate("/Signin")
+							})
 					}
 					}>Submit</button>
 				</form>
