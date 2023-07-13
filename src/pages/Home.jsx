@@ -1,10 +1,11 @@
 import {useEffect, useRef, useState} from "react";
-import * as stream from "stream";
+import io from "socket.io-client"
 import {CallEnd, CloseFullscreenRounded, Mic, MicOff, Videocam, VideocamOff} from "@mui/icons-material";
 
 export const Home = () => {
 	let localStream = useRef(null);
-	let remoteStream;
+	let remoteStream = useRef(null);
+	let peerConnection;
 	let localStreamRef = useRef()
 	let remoteStreamRef = useRef()
 	const smallRef = useRef(localStreamRef)
@@ -14,6 +15,15 @@ export const Home = () => {
 	const muteRef = useRef(null)
 	let [selfVidDisplay, setSelfVidDisplay] = useState(true)
 	let [selfMute, setSelfMute] = useState(false)
+	const servers = [
+		{
+			urls: [
+				"stun1.l.google.com:19302",
+				"stun2.l.google.com:19302",
+				"stun3.l.google.com:19302"
+			]
+		}
+	]
 	function getOppRef(ref){
 		if(ref.current.id === "local"){
 			return remoteStreamRef
@@ -112,10 +122,31 @@ export const Home = () => {
 	}, [minState])
 
 	useEffect(()=>{
+		let socket = io.connect("http://localhost:3000")
+		socket.on("roomAssignment", (data) => {
+			console.log(data.finalID)
+		})
+		let createOffer = async () => {
+			peerConnection = new RTCPeerConnection(servers);
+			remoteStream.current = new MediaStream();
+
+			localStream.current.getTracks().forEach(track => peerConnection.addTrack(track, localStream.current))
+			peerConnection.ontrack = (event) => {
+				event.streams[0].getTracks().forEach(track => remoteStream.current.addTrack(track))
+			}
+			peerConnection.onicecandidate  = async (event) => {
+				if(event.candidate){
+					console.log("new ice candidate")
+				}
+			}
+			let offer = await peerConnection.createOffer()
+			await peerConnection.setLocalDescription(offer)
+		}
 		let init = async() => {
 			try {
 				localStream.current = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
 				localStreamRef.current.srcObject = localStream.current
+				createOffer()
 			} catch (e) {
 				console.log(e)
 			}
@@ -146,7 +177,7 @@ export const Home = () => {
 						localStreamRef.current.srcObject = null
 						localStreamRef.current.poster = "https://preview.redd.it/zcgs03lgoy351.png?width=288&format=png&auto=webp&s=d9bf4b46713d7fdbf11b82a8e364ceee79724a9c"
 					} else {
-						localStream.current = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+						localStream.current = await navigator.mediaDevices.getUserMedia({video: true, audio: !selfMute});
 						localStreamRef.current.srcObject = localStream.current
 					}
 					setSelfVidDisplay(!selfVidDisplay)
