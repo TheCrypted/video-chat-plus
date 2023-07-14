@@ -2,7 +2,7 @@ import {useEffect, useRef, useState} from "react";
 import io from "socket.io-client"
 import {CallEnd, CloseFullscreenRounded, Mic, MicOff, Videocam, VideocamOff} from "@mui/icons-material";
 import {data} from "autoprefixer";
-
+const socket = io.connect("http://localhost:3000")
 export const Home = () => {
 	let localStream = useRef(null);
 	let remoteStream = useRef(null);
@@ -18,7 +18,6 @@ export const Home = () => {
 	let [selfMute, setSelfMute] = useState(false)
 	const [user, setUser] = useState(null)
 	const [roomID, setRoomID] = useState(null)
-	const socket = io.connect("http://localhost:3000")
 	const servers = [
 		{
 			urls: [
@@ -128,13 +127,19 @@ export const Home = () => {
 		peerConnection = new RTCPeerConnection(servers);
 		remoteStream.current = new MediaStream();
 
+		if(!localStream.current){
+			localStream.current = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+			localStreamRef.current.srcObject = localStream.current
+		}
 		localStream.current.getTracks().forEach(track => peerConnection.addTrack(track, localStream.current))
 		peerConnection.ontrack = (event) => {
-			event.streams[0].getTracks().forEach(track => remoteStream.current.addTrack(track))
+			event.streams[0].getTracks().forEach(track => remoteStream.current = remoteStream.current.addTrack(track))
 		}
 		peerConnection.onicecandidate  = async (event) => {
 			if(event.candidate){
-				console.log("new ice candidate")
+				socket.emit("candidate", {
+					candidate: event.candidate
+				})
 			}
 		}
 	}
@@ -161,15 +166,33 @@ export const Home = () => {
 		}
 	}
 	useEffect(()=>{
-		socket.on("offer", (data) => {
+		socket.on("offer", async (data) => {
 			console.log("offer received", data.offer)
-			createAnswer(data.offer)
+			await createAnswer(data.offer)
 		})
-		socket.on("userJoined", (data) => {
-			createOffer()
+		socket.on("userJoined", async (data) => {
+			await createOffer()
 			alert("userJoined")
 		})
+		socket.on("roomAssignment", (data) => {
+			setRoomID(data.finalID)
+			socket.emit("userInfo", {
+				user
+			})
+		})
+		socket.on("candidate", (data) => {
+			if(peerConnection){
+				peerConnection.addIceCandidate(data.candidate)
+			}
+		})
 	}, [socket])
+
+	const userLeave = () => {
+		socket.emit("userLeave", {user})
+	}
+
+	window.addEventListener("beforeunload", userLeave)
+
 	useEffect(()=>{
 		let token = localStorage.getItem("token")
 		fetch("http://localhost:3000/auth/protected", {
@@ -182,13 +205,6 @@ export const Home = () => {
 			.then(response => {
 				setUser(response.user)
 			})
-		createOffer()
-		socket.on("roomAssignment", (data) => {
-			setRoomID(data.finalID)
-			socket.emit("userInfo", {
-				user
-			})
-		})
 		init().catch(e => console.log(e))
 		return function cleanup() {
 			if (localStream.current) {

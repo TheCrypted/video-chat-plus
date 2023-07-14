@@ -31,7 +31,7 @@ io.on("connection", (socket) => {
     let temp = roomID.split("-")
     let finalID = temp.slice(1, 4).join("-")
     console.log(finalID)
-    socket.join("alpha")//replace with finalID
+    socket.join("alpha") //replace with finalID
     socket.emit("roomAssignment", {finalID})
     socket.on("userInfo", (userInfo)=> {
         if (meetingRooms[finalID]){
@@ -42,9 +42,21 @@ io.on("connection", (socket) => {
             meetingRooms[finalID] = {users: [userInfo]}
         }
     })
+    socket.broadcast.to("alpha").emit("userJoined", {
+        info: "info"
+    })
     socket.on("offer", (offer)=> {
         console.log("offer received")
         socket.broadcast.to("alpha").emit("offer", {offer})
+    })
+    socket.on("candidate", (data)=> {
+        socket.broadcast.to("alpha").emit("candidate", {data})
+    })
+    socket.on("userLeave", (data)=>{
+        socket.leave("alpha")
+    })
+    socket.on("userLeave", (data)=>{
+        console.log("user has left")
     })
 })
 const init = async () => {
