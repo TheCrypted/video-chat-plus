@@ -1,6 +1,7 @@
 import {useEffect, useRef, useState} from "react";
 import io from "socket.io-client"
 import {CallEnd, CloseFullscreenRounded, Mic, MicOff, Videocam, VideocamOff} from "@mui/icons-material";
+import {data} from "autoprefixer";
 
 export const Home = () => {
 	let localStream = useRef(null);
@@ -15,6 +16,9 @@ export const Home = () => {
 	const muteRef = useRef(null)
 	let [selfVidDisplay, setSelfVidDisplay] = useState(true)
 	let [selfMute, setSelfMute] = useState(false)
+	const [user, setUser] = useState(null)
+	const [roomID, setRoomID] = useState(null)
+	const socket = io.connect("http://localhost:3000")
 	const servers = [
 		{
 			urls: [
@@ -120,37 +124,71 @@ export const Home = () => {
 			window.removeEventListener("mouseup", removeEventListener)
 		}
 	}, [minState])
+	let createPeerConnection = async () => {
+		peerConnection = new RTCPeerConnection(servers);
+		remoteStream.current = new MediaStream();
 
+		localStream.current.getTracks().forEach(track => peerConnection.addTrack(track, localStream.current))
+		peerConnection.ontrack = (event) => {
+			event.streams[0].getTracks().forEach(track => remoteStream.current.addTrack(track))
+		}
+		peerConnection.onicecandidate  = async (event) => {
+			if(event.candidate){
+				console.log("new ice candidate")
+			}
+		}
+	}
+	let createOffer = async () => {
+		await createPeerConnection()
+		let offer = await peerConnection.createOffer()
+		await peerConnection.setLocalDescription(offer)
+		socket.emit("offer", {offer})
+	}
+
+	let createAnswer = async (offer) => {
+		await createPeerConnection()
+		await peerConnection.setRemoteDescription(offer)
+		let answer = peerConnection.createAnswer();
+		await peerConnection.setLocalDescription(answer)
+		socket.emit("answer", {answer})
+	}
+	let init = async() => {
+		try {
+			localStream.current = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+			localStreamRef.current.srcObject = localStream.current
+		} catch (e) {
+			console.log(e)
+		}
+	}
 	useEffect(()=>{
-		let socket = io.connect("http://localhost:3000")
-		socket.on("roomAssignment", (data) => {
-			console.log(data.finalID)
+		socket.on("offer", (data) => {
+			console.log("offer received", data.offer)
+			createAnswer(data.offer)
 		})
-		let createOffer = async () => {
-			peerConnection = new RTCPeerConnection(servers);
-			remoteStream.current = new MediaStream();
-
-			localStream.current.getTracks().forEach(track => peerConnection.addTrack(track, localStream.current))
-			peerConnection.ontrack = (event) => {
-				event.streams[0].getTracks().forEach(track => remoteStream.current.addTrack(track))
+		socket.on("userJoined", (data) => {
+			createOffer()
+			alert("userJoined")
+		})
+	}, [socket])
+	useEffect(()=>{
+		let token = localStorage.getItem("token")
+		fetch("http://localhost:3000/auth/protected", {
+			method: "GET",
+			headers: {
+				"Content-type": "application/json",
+				auth: token
 			}
-			peerConnection.onicecandidate  = async (event) => {
-				if(event.candidate){
-					console.log("new ice candidate")
-				}
-			}
-			let offer = await peerConnection.createOffer()
-			await peerConnection.setLocalDescription(offer)
-		}
-		let init = async() => {
-			try {
-				localStream.current = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
-				localStreamRef.current.srcObject = localStream.current
-				createOffer()
-			} catch (e) {
-				console.log(e)
-			}
-		}
+		}).then(resp => resp.json())
+			.then(response => {
+				setUser(response.user)
+			})
+		createOffer()
+		socket.on("roomAssignment", (data) => {
+			setRoomID(data.finalID)
+			socket.emit("userInfo", {
+				user
+			})
+		})
 		init().catch(e => console.log(e))
 		return function cleanup() {
 			if (localStream.current) {

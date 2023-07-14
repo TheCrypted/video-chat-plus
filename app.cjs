@@ -8,6 +8,7 @@ const {Server} = require("socket.io");
 const {v4 : uuidv4} = require("uuid")
 const app = express();
 const PORT = 3000;
+let meetingRooms = {}
 meetingDB.sync().then(()=>{
     console.log("DB is ready")
 }).catch((err)=>{
@@ -30,8 +31,21 @@ io.on("connection", (socket) => {
     let temp = roomID.split("-")
     let finalID = temp.slice(1, 4).join("-")
     console.log(finalID)
-    socket.join(finalID)
+    socket.join("alpha")//replace with finalID
     socket.emit("roomAssignment", {finalID})
+    socket.on("userInfo", (userInfo)=> {
+        if (meetingRooms[finalID]){
+            meetingRooms[finalID].users.push({
+                userInfo
+            })
+        } else {
+            meetingRooms[finalID] = {users: [userInfo]}
+        }
+    })
+    socket.on("offer", (offer)=> {
+        console.log("offer received")
+        socket.broadcast.to("alpha").emit("offer", {offer})
+    })
 })
 const init = async () => {
     server.listen(PORT, ()=>{
